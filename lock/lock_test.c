@@ -5,6 +5,18 @@
 #include <stdint.h>
 #include <semaphore.h>
 
+#include <sys/time.h>
+
+double mysecond()
+{
+        struct timeval tp;
+        struct timezone tzp;
+        int i;
+
+        i = gettimeofday(&tp,&tzp);
+        return ( (double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
+}
+
 // contact: attractor@live.co.uk
 
 // http://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Atomic-Builtins.html
@@ -137,6 +149,7 @@ int main(int argc, char *argv[])
 	worker_t *w, w0;
 	pthread_t *tid;
 	pthread_attr_t attr;
+	double time;
 
 	w0.n = 1000000; w0.m = 100; w0.type = 1; w0.start = 0; w0.step = 1;
 	while ((c = getopt(argc, argv, "t:n:s:m:l:")) >= 0) {
@@ -152,6 +165,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Lock type: 0 for single-thread; 1 for gcc builtin; 2 for spin lock; 3 for pthread spin; 4 for mutex;\n");
 	fprintf(stderr, "           5 for semaphore; 6 for buffer+spin; 7 for buffer+mutex\n");
 
+	/* initialization */
 	w0.bits = (uint64_t*)calloc((w0.n + 63) / 64, 8);
 
 #ifndef __APPLE__
@@ -167,11 +181,19 @@ int main(int argc, char *argv[])
 		w[i] = w0;
 		w[i].start = i; w[i].step = n_threads;
 	}
+
+	/* start of timing */
+	time = mysecond();
 	for (i = 0; i < n_threads; ++i) pthread_create(&tid[i], &attr, worker, &w[i]);
 	for (i = 0; i < n_threads; ++i) pthread_join(tid[i], 0);
+	/* end of timeing */
+	time = mysecond() - time;
+	fprintf(stderr, "Function pass time (in seconds): %11.6f\n", time);
+	/* clean up */
 	sem_destroy(&g_sem);
 	pthread_mutex_destroy(&g_mutex);
 
+	/* verification of the result */
 	for (i = 0, z = 0, tmp = (w0.n + 63)/64; i < tmp; ++i) z ^= w0.bits[i];
 	fprintf(stderr, "Hash: %llx (should be 0 if -m is even or aaaaaaaaaaaaaaa if -m is odd)\n", (unsigned long long)z);
 	free(w0.bits);
