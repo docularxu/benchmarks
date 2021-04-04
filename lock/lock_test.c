@@ -152,18 +152,20 @@ int main(int argc, char *argv[])
 	double time;
 
 	w0.n = 1000000; w0.m = 100; w0.type = 1; w0.start = 0; w0.step = 1;
-	while ((c = getopt(argc, argv, "t:n:s:m:l:")) >= 0) {
+	while ((c = getopt(argc, argv, "t:n:s:m:l:h")) >= 0) {
 		switch (c) {
 			case 't': n_threads = atoi(optarg); break;
 			case 'n': w0.n = atoi(optarg); break;
 			case 'm': w0.m = atoi(optarg); break;
 			case 'l': w0.type = atoi(optarg); break;
+			case 'h':
+				fprintf(stderr, "Usage: lock_test [-t nThreads=%d] [-n size=%d] [-m repeat=%d] [-l lockType=%d]\n",
+					n_threads, w0.n, w0.m, w0.type);
+				fprintf(stderr, "Lock type: 0 for single-thread; 1 for gcc builtin; 2 for spin lock; 3 for pthread spin; 4 for mutex;\n");
+				fprintf(stderr, "           5 for semaphore; 6 for buffer+spin; 7 for buffer+mutex\n");
+				return 0;
 		}
 	}
-	fprintf(stderr, "Usage: lock_test [-t nThreads=%d] [-n size=%d] [-m repeat=%d] [-l lockType=%d]\n",
-			n_threads, w0.n, w0.m, w0.type);
-	fprintf(stderr, "Lock type: 0 for single-thread; 1 for gcc builtin; 2 for spin lock; 3 for pthread spin; 4 for mutex;\n");
-	fprintf(stderr, "           5 for semaphore; 6 for buffer+spin; 7 for buffer+mutex\n");
 
 	/* initialization */
 	w0.bits = (uint64_t*)calloc((w0.n + 63) / 64, 8);
